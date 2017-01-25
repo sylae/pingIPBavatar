@@ -1,0 +1,33 @@
+{
+  "name": "sylae/pingIPBavatar",
+  "description": "Script to update avatar on IPB forums",
+  "type": "project",
+  "keywords": [
+    "IPB"
+  ],
+  "homepage": "https://github.com/sylae/pingIPBavatar",
+  "license": "GPL-3.0+",
+  "authors": [
+    {
+      "name": "Keira Sylae Aro",
+      "email": "sylae@calref.net",
+      "homepage": "https://calref.net",
+      "role": "Developer"
+    }
+  ],
+  "support": {
+    "email": "sylae@calref.net",
+    "source": "https://github.com/sylae/pingIPBavatar"
+  },
+  "require": {
+    "querypath/querypath": ">=3.0.0",
+    "php-curl-class/php-curl-class": "^4.8",
+    "ext-curl": "*",
+    "ext-mbstring": "*"
+  },
+  "autoload": {
+    "psr-4": {
+      "Sylae\\": "classes/"
+    }
+  }
+}
