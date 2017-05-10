@@ -46,9 +46,10 @@ class IPB {
   public function __construct(array $config) {
     $this->config = $config;
     try {
+      ini_set('user_agent', "sylae/pingIPBavatar (https://github.com/sylae/pingIPBavatar)");
       $this->curl = new \Curl\Curl();
       $this->curl->setCookieJar("cookies.txt");
-      $this->curl->setUserAgent("sylae/pingIPBavatar (https://github.com/sylae/pingIPBavatar");
+      $this->curl->setUserAgent("sylae/pingIPBavatar (https://github.com/sylae/pingIPBavatar)");
       $this->curl->setOpt(CURLOPT_FOLLOWLOCATION, true);
 
       // todo: if already logged in, skip this
@@ -63,16 +64,17 @@ class IPB {
    * @return bool true if login successful
    */
   private function login(): bool {
-    $url = $this->config['ipbURL'] . "app=core&module=global&section=login";
-    $html = file_get_contents($url);
+    $this->curl->get($this->config['ipbURL'] . '/login/');
+    $html = $this->curl->response;
 
-    $auth = \htmlqp($html, 'input[name=\'auth_key\']')->attr("value");
+    $auth = \htmlqp($html, 'input[name=\'csrfKey\']')->attr("value");
 
-    $this->curl->post($this->config['ipbURL'] . 'app=core&module=global&section=login&do=process', [
-      'ips_username' => $this->config['ipbUser'],
-      'ips_password' => $this->config['ipbPass'],
-      'auth_key' => $auth,
-    ]);
+    $this->curl->post($this->config['ipbURL'] . '/login/', [
+      'auth' => $this->config['ipbUser'],
+      'password' => $this->config['ipbPass'],
+      'login__standard_submitted' => 1,
+      'csrfKey' => $auth,
+      ], true);
     return true;
   }
 
@@ -82,19 +84,20 @@ class IPB {
    * @return bool True if success
    */
   public function setAvatarURL(string $url): bool {
-    $form = $this->curl->get($this->config['ipbURL'] . "app=members&module=profile&section=photo");
+    $form = $this->curl->get($this->config['ipbURL'] . "/profile/" . $this->config['ipbProfileLink'] . "/photo/");
 
-    $form_url = \htmlqp($form, "#photoEditorForm")->attr("action");
-    $bits = [];
-    parse_str($form_url, $bits);
-    $session = $this->curl->getCookie("session_id");
-    $secure_key = $bits['secure_key'];
+    $data = [
+      'form_submitted' => 1,
+      'csrfKey' => \htmlqp($form, 'input[name=\'csrfKey\']')->attr("value"),
+      'MAX_FILE_SIZE' => \htmlqp($form, 'input[name=\'MAX_FILE_SIZE\']')->attr("value"),
+      'plupload' => \htmlqp($form, 'input[name=\'plupload\']')->attr("value"),
+      'radio_pp_photo_type__empty' => 1,
+      'pp_photo_type' => 'url',
+      'member_photo_upload' => \htmlqp($form, 'input[name=\'member_photo_upload\']')->attr("value"),
+      'member_photo_url' => $url,
+    ];
 
-    $postURL = sprintf($this->config['ipbURL'] . "s=%s&app=members&module=ajax&section=photo&do=importUrl&secure_key=%s", $session, $secure_key);
-
-    $r = $this->curl->post($postURL, [
-      'url' => $url,
-    ]);
+    $r = $this->curl->post($this->config['ipbURL'] . "/profile/" . $this->config['ipbProfileLink'] . "/photo/", $data, true);
     return (bool) ($r->error ?? false);
   }
 
